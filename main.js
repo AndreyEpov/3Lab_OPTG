@@ -2,8 +2,8 @@
 var container;
 var camera, scene, renderer;
 var imagedata;
-var geomerty;
-var spotlight = new THREE.PointLight(0xffffff);
+var geometry;
+var spotlight = new THREE.PointLight(0xffff00);
 var sphere;
 var N = 350;
    
@@ -21,10 +21,32 @@ function init()
     renderer = new THREE.WebGLRenderer( { antialias: false } );
     renderer.setSize( window.innerWidth, window.innerHeight );
     renderer.setClearColor( 0x444444, 1);
+    
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
+
+
     container.appendChild( renderer.domElement );
     window.addEventListener( 'resize', onWindowResize, false );
 
-    spotlight.position.set(N*2, N*1.5, N/2);
+    spotlight.position.set(N*2, N*2, N/2);
+    var targetObject = new THREE.Object3D();
+    targetObject.position.set(N,0,N);
+    scene.add(targetObject);
+
+    spotlight.target = targetObject;
+    
+    spotlight.castShadow = true;
+
+    spotlight.shadow.mapSize.width = 2048;
+    spotlight.shadow.mapSize.height = 2048;
+
+    spotlight.shadow.camera.near = 500;
+    spotlight.shadow.camera.far = 4000;
+    spotlight.shadow.camera.fov = 90;
+    var helper = new THREE.CameraHelper(spotlight.shadow.camera);
+    scene.add(helper);
+   
     scene.add(spotlight);
    /* var geometry = new THREE.SphereGeometry( 5, 32, 32 );
     var material = new THREE.MeshBasicMaterial( {color: 0xffff00} );
@@ -131,6 +153,7 @@ function CreateTerrain()
     });
  
     var matMesh = new THREE.Mesh(geometry, mat); 
+    matMesh.receiveShadow = true;
     scene.add(matMesh);
 }
 
@@ -160,15 +183,35 @@ function loadModel(path, oname, mname)
             var objLoader = new THREE.OBJLoader();
             objLoader.setMaterials( materials );
             objLoader.setPath( path );
+       
+
             // функция загрузки модели
             objLoader.load( oname, function ( object )
             {
-                object.position.x = 0;
-                object.position.y = 0;
-                object.position.z = 0;
-                //object.scale.set(2, 2, 2);
-                object.scale.set(0.2, 0.2, 0.2);
-                scene.add(object);
+               
+
+                object.castShadow = true;
+                object.traverse( function ( child )
+                    {
+                        if ( child instanceof THREE.Mesh )
+                            {
+                                 child.castShadow = true;
+                            }
+                    } );
+
+                for (var i = 0; i<20;i++)
+                {
+                    var x = Math.random()*N;
+                    var z = Math.random()*N;
+                    var y = geometry.vertices[Math.round(x)+Math.round(z)*N].y;
+                    object.position.x = x;
+                    object.position.y = y;
+                    object.position.z = z;
+                    //object.scale.set(2, 2, 2);
+                    var s =((Math.random()*100)+30)/400;
+                    object.scale.set(s,s,s);
+                    scene.add(object.clone());
+                }
             }, onProgress, onError );
         });
 }
