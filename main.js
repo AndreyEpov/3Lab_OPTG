@@ -3,10 +3,10 @@ var container;
 var camera, scene, renderer;
 var imagedata;
 var geometry;
-var spotlight = new THREE.PointLight(0xffff00);
+var spotlight = new THREE.PointLight(0xaaff00);
 var sphere;
 var N = 350;
-   
+var mixer, morphs = [];   
 init();
 animate();
  
@@ -53,10 +53,11 @@ function init()
     sphere = new THREE.Mesh( geometry, material );
     scene.add( sphere );
  */
+    mixer = new THREE.AnimationMixer( scene );
     var canvas = document.createElement('canvas');
     var context = canvas.getContext('2d');
     var img = new Image();
-    
+
     img.onload = function()
     {    
         canvas.width = img.width;    
@@ -65,7 +66,13 @@ function init()
         imagedata = context.getImageData(0, 0, img.width, img.height);
        
         CreateTerrain();
+        loadModel('models/trees/palma/', "Palma 001.obj", "Palma 001.mtl");
         loadModel('models/trees/tree/', "Tree.obj", "Tree.mtl");
+        loadModel('models/trees/hvoya/', "needle01.obj", "needle01.mtl");
+        
+        loadAnimatedModel('models/bird/Parrot.glb');
+
+       
     }
     img.src = 'pics/lake.jpg';
 }
@@ -83,7 +90,13 @@ var a = 0.0;
 function animate()
 {
     
-    
+   /* var delta = clock.getDelta();
+    mixer.update( delta );
+    for ( var i = 0; i < morphs.length; i ++ )
+    {
+         var morph = morphs[ i ];
+    }
+*/
     requestAnimationFrame( animate );
     render();
     /*
@@ -199,7 +212,7 @@ function loadModel(path, oname, mname)
                             }
                     } );
 
-                for (var i = 0; i<20;i++)
+                for (var i = 0; i<10;i++)
                 {
                     var x = Math.random()*N;
                     var z = Math.random()*N;
@@ -214,4 +227,27 @@ function loadModel(path, oname, mname)
                 }
             }, onProgress, onError );
         });
+    
+        
 }
+function loadAnimatedModel(path) //где path – путь и название модели
+        {
+            var loader = new THREE.GLTFLoader();
+        
+            loader.load( path, function ( gltf ) {
+                var mesh = gltf.scene.children[ 0 ];
+                var clip = gltf.animations[ 0 ];
+                //установка параметров анимации (скорость воспроизведения и стартовый фрейм)
+                mixer.clipAction( clip, mesh ).setDuration( 1 ).startAt( 0 ).play();
+                mesh.position.set( N/2, N/5, N/2 );
+                mesh.rotation.y = Math.PI / 8;
+               // mesh.scale.set( 0.2, 0.2, 0.2 );
+                mesh.scale.set( 2, 2, 2 );
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                
+                scene.add( mesh );
+                morphs.push( mesh );
+            
+            } );
+        }
