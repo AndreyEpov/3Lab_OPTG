@@ -65,7 +65,7 @@ function init()
     // включение расчёта теней
     light.castShadow = true;
     // параметры области расчёта теней
-    light.shadow = new THREE.LightShadow( new THREE.PerspectiveCamera( 45, 1, 1, 2500 ) );
+    light.shadow = new THREE.LightShadow( new THREE.PerspectiveCamera( 60, 1, 1, 2500 ) );
     light.shadow.bias = 0.0001;
     // размер карты теней
     light.shadow.mapSize.width = 4096;
@@ -170,16 +170,17 @@ function animate()
             // установка позиции и направления взгляда камеры
             camera.position.copy(cameraOffset);
             camera.lookAt( stork.position );
-            stork.translateZ(10*delta);
+            stork.translateZ(50*delta);
 
-            if(keyboard.pressed("right"))
+            if(keyboard.pressed("a"))
             {
-                stork.translateOnAxis(axisY,Math.PI/30.0);
+                stork.rotateOnAxis(new THREE.Vector3(0,0,1),Math.PI/30.0);
+                stork.rotateOnAxis(axisY,Math.PI/30.0);
             }
             
-            if(keyboard.pressed("left"))
+            if(keyboard.pressed("d"))
             {
-                stork.translateOnAxis(axisY,-Math.PI/30.0);
+                stork.rotateOnAxis(axisY,-Math.PI/30.0);
             }
            
 
@@ -302,7 +303,7 @@ function loadModel(path, oname, mname)
                             }
                     } );
 
-                for (var i = 0; i<30;i++)
+                for (var i = 0; i<10;i++)
                 {
                     var x = Math.random()*N;
                     var z = Math.random()*N;
