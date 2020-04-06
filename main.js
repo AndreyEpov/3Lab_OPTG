@@ -6,7 +6,10 @@ var geometry;
 var spotlight = new THREE.PointLight(0xaaff00);
 var sphere;
 var N = 350;
-var mixer, morphs = [];   
+var mixer, morphs = [];  
+var clock = new THREE.Clock();
+var mtlLoader;
+var model;
 init();
 animate();
  
@@ -53,7 +56,7 @@ function init()
     sphere = new THREE.Mesh( geometry, material );
     scene.add( sphere );
  */
-    mixer = new THREE.AnimationMixer( scene );
+    
     var canvas = document.createElement('canvas');
     var context = canvas.getContext('2d');
     var img = new Image();
@@ -68,10 +71,10 @@ function init()
         CreateTerrain();
         loadModel('models/trees/palma/', "Palma 001.obj", "Palma 001.mtl");
         loadModel('models/trees/tree/', "Tree.obj", "Tree.mtl");
-        loadModel('models/trees/hvoya/', "needle01.obj", "needle01.mtl");
+       // loadModel('models/trees/hvoya/', "needle01.obj", "needle01.mtl");
         
-        loadAnimatedModel('models/bird/Parrot.glb');
-
+        loadAnimatedModel('models/Parrot.glb');
+        mixer = new THREE.AnimationMixer( scene );
        
     }
     img.src = 'pics/lake.jpg';
@@ -90,15 +93,16 @@ var a = 0.0;
 function animate()
 {
     
-   /* var delta = clock.getDelta();
-    mixer.update( delta );
-    for ( var i = 0; i < morphs.length; i ++ )
+
+   /* for ( var i = 0; i < morphs.length; i ++ )
     {
          var morph = morphs[ i ];
     }
 */
     requestAnimationFrame( animate );
     render();
+    var delta = clock.getDelta();
+    mixer.update( delta );
     /*
     spotlight.position.x = N/2+N*Math.cos(a);
     spotlight.position.y = N*Math.sin(a);
@@ -216,7 +220,7 @@ function loadModel(path, oname, mname)
                 {
                     var x = Math.random()*N;
                     var z = Math.random()*N;
-                    var y = geometry.vertices[Math.round(x)+Math.round(z)*N].y;
+                    var y = geometry.vertices[Math.round(z)+Math.round(x)*N].y;
                     object.position.x = x;
                     object.position.y = y;
                     object.position.z = z;
@@ -240,9 +244,10 @@ function loadAnimatedModel(path) //где path – путь и название 
                 //установка параметров анимации (скорость воспроизведения и стартовый фрейм)
                 mixer.clipAction( clip, mesh ).setDuration( 1 ).startAt( 0 ).play();
                 mesh.position.set( N/2, N/5, N/2 );
+                //mesh.position.set( 20, 40, 20 );
                 mesh.rotation.y = Math.PI / 8;
-               // mesh.scale.set( 0.2, 0.2, 0.2 );
-                mesh.scale.set( 2, 2, 2 );
+                mesh.scale.set( 0.2, 0.2, 0.2 );
+                //mesh.scale.set( 2, 2, 2 );
                 mesh.castShadow = true;
                 mesh.receiveShadow = true;
                 
