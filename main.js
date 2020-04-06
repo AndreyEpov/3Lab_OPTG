@@ -62,7 +62,7 @@ function init()
     spotlight.shadow.camera.far = 4000;
     spotlight.shadow.camera.fov = 90;
     */
-   light.position.set(N*2, N/2, N/2 );
+   light.position.set(N*2, N, N/2 );
     // направление освещения
     light.target = new THREE.Object3D();
     light.target.position.set( 0, 5, 0 );
@@ -84,7 +84,8 @@ function init()
     var material = new THREE.MeshBasicMaterial( {color: 0xffff00} );
     sphere = new THREE.Mesh( geometry, material );
     scene.add( sphere );
- */addSky();
+ */ 
+addSky();
     
     var canvas = document.createElement('canvas');
     var context = canvas.getContext('2d');
@@ -130,7 +131,7 @@ function animate()
     var delta = clock.getDelta();
     mixer.update(delta);
     t+=delta;
-    a += 0.001;
+    //a += 0.001;
     
     for ( var i = 0; i < morphs.length; i ++ )
     {
@@ -495,7 +496,7 @@ function addSky()
     var sphere = new THREE.Mesh(geometry, material);
     sphere.position.x = 162.5;
     sphere.position.z = 162.5;
-    sphere.rotation.y = a;
+    //sphere.rotation.y = a;
     //размещение объекта в сцене
     scene.add( sphere );
     } 
