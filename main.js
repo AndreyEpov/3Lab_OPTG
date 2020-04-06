@@ -3,20 +3,24 @@ var container;
 var camera, scene, renderer;
 var imagedata;
 var geometry;
-var spotlight = new THREE.PointLight(0xaaff00,2,100,2);
+var spotlight = new THREE.PointLight(0xaaff00,8,100,2);
 var light = new THREE.DirectionalLight(0xffff00);
 var sphere;
 var N = 350;
 var mixer, morphs = [];  
 var clock = new THREE.Clock();
 var mtlLoader;
-var model;
-var parrotPath;
+var defaultLook = new THREE.Vector3( N/2, 0.0, N/2);
+
+var parrotPath; 
+var storkPath; 
 var keyboard = new THREEx.KeyboardState();
 var T=10.0;
 var t=0.0;
 var followParrot = false;
+var followStork = false;
 var axisY = new THREE.Vector3(0,1,0);
+var axisZ= new THREE.Vector3(0,0,1);
 var stork;
 
 init();
@@ -24,6 +28,7 @@ animate();
  
 function init()
 {
+    
     container = document.getElementById( 'container' );
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 4000 );    
@@ -57,7 +62,7 @@ function init()
     spotlight.shadow.camera.far = 4000;
     spotlight.shadow.camera.fov = 90;
     */
-   light.position.set(N*2, N, N/2 );
+   light.position.set(N*2, N/2, N/2 );
     // направление освещения
     light.target = new THREE.Object3D();
     light.target.position.set( 0, 5, 0 );
@@ -79,7 +84,7 @@ function init()
     var material = new THREE.MeshBasicMaterial( {color: 0xffff00} );
     sphere = new THREE.Mesh( geometry, material );
     scene.add( sphere );
- */
+ */addSky();
     
     var canvas = document.createElement('canvas');
     var context = canvas.getContext('2d');
@@ -97,11 +102,15 @@ function init()
         loadModel('models/trees/tree/', "Tree.obj", "Tree.mtl");
        // loadModel('models/trees/hvoya/', "needle01.obj", "needle01.mtl");
         
-        loadAnimatedModel('models/Parrot.glb',false);
-       stork = loadAnimatedModel('models/Stork.glb',true);
+  
      
-        parrotPath=addTraektory();
+
+
     }
+    parrotPath=addTraektoryP();
+    storkPath=addTraektoryS();
+    loadAnimatedModel('models/Parrot.glb',parrotPath);
+    loadAnimatedModel('models/Stork.glb',storkPath);
     img.src = 'pics/lake.jpg';
     
 }
@@ -121,42 +130,79 @@ function animate()
     var delta = clock.getDelta();
     mixer.update(delta);
     t+=delta;
-
+    a += 0.001;
+    
     for ( var i = 0; i < morphs.length; i ++ )
     {
     
          var morph = morphs[ i ];
          var pos = new THREE.Vector3();
          if (t>=T)t=0.0;
-         pos.copy(parrotPath.getPointAt(t/T));
-         morph.position.copy(pos);
+         pos.copy(morph.controlled.getPointAt(t/T));
+         morph.mesh.position.copy(pos);
 
          spotlight.position.copy(pos);
 
          var nextPoint = new THREE.Vector3();
          if ((t+0.001)>=T)t=0.0;
-         nextPoint.copy(parrotPath.getPointAt((t+0.001)/T)); 
+         nextPoint.copy(morph.controlled.getPointAt((t+0.001)/T)); 
 
-         morph.lookAt(nextPoint);
-         if (followParrot == true)
+         morph.mesh.lookAt(nextPoint);
+         if (followParrot&& i==0)
          {
             var relativeCameraOffset = new THREE.Vector3(0,50,-150);
             var m1 = new THREE.Matrix4();
             var m2 = new THREE.Matrix4();
             // получение поворота объекта
-            m1.extractRotation( morph.matrixWorld);
+            m1.extractRotation( morph.mesh.matrixWorld);
             // получение позиции объекта
-            m2.copyPosition( morph.matrixWorld);
+            m2.copyPosition( morph.mesh.matrixWorld);
             m1.multiplyMatrices(m2, m1);
             // получение смещения позиции камеры относительно объекта
             var cameraOffset = relativeCameraOffset.applyMatrix4(m1);
             // установка позиции и направления взгляда камеры
             camera.position.copy(cameraOffset);
-            camera.lookAt( morph.position );
+            camera.lookAt( morph.mesh.position );
             
          }
-         if (stork != null)
+         if (followStork&& i==1)
          {
+            var relativeCameraOffset = new THREE.Vector3(0,50,-150);
+            var m1 = new THREE.Matrix4();
+            var m2 = new THREE.Matrix4();
+            // получение поворота объекта
+            m1.extractRotation( morph.mesh.matrixWorld);
+            // получение позиции объекта
+            m2.copyPosition( morph.mesh.matrixWorld);
+            m1.multiplyMatrices(m2, m1);
+            // получение смещения позиции камеры относительно объекта
+            var cameraOffset = relativeCameraOffset.applyMatrix4(m1);
+            // установка позиции и направления взгляда камеры
+            camera.position.copy(cameraOffset);
+            camera.lookAt( morph.mesh.position );
+            
+         }
+         /*
+         if ((followStork==true)||(followParrot==true))
+         {
+            var relativeCameraOffset = new THREE.Vector3(0,50,-150);
+            var m1 = new THREE.Matrix4();
+            var m2 = new THREE.Matrix4();
+            // получение поворота объекта
+            m1.extractRotation( morph.mesh.matrixWorld);
+            // получение позиции объекта
+            m2.copyPosition( morph.mesh.matrixWorld);
+            m1.multiplyMatrices(m2, m1);
+            // получение смещения позиции камеры относительно объекта
+            var cameraOffset = relativeCameraOffset.applyMatrix4(m1);
+            // установка позиции и направления взгляда камеры
+            camera.position.copy(cameraOffset);
+            camera.lookAt( morph.mesh.position );
+            
+         }
+         /*else if (model.mesh == null)
+         {
+            stork=model.mesh ;
             var relativeCameraOffset = new THREE.Vector3(0,50,-150);
             var m1 = new THREE.Matrix4();
             var m2 = new THREE.Matrix4();
@@ -171,38 +217,57 @@ function animate()
             camera.position.copy(cameraOffset);
             camera.lookAt( stork.position );
             stork.translateZ(50*delta);
-
+            
             if(keyboard.pressed("a"))
             {
-                stork.rotateOnAxis(new THREE.Vector3(0,0,1),Math.PI/30.0);
                 stork.rotateOnAxis(axisY,Math.PI/30.0);
+                stork.rotateOnAxis(axisZ,-Math.PI/30.0);
+                stork.rotateOnAxis(axisY,-Math.PI/30.0);
+                stork.rotateOnAxis(axisZ,Math.PI/30.0);
             }
             
             if(keyboard.pressed("d"))
             {
                 stork.rotateOnAxis(axisY,-Math.PI/30.0);
+                stork.rotateOnAxis(axisZ,-Math.PI/30.0);
+                stork.rotateOnAxis(axisY,Math.PI/30.0);
+                stork.rotateOnAxis(axisZ,Math.PI/30.0);
             }
-           
+            if(keyboard.pressed("left"))
+            {
+              
+               stork.rotateOnAxis(axisY,Math.PI/30.0);
+              
+            }
+            
+            if(keyboard.pressed("right"))
+            {
+                stork.rotateOnAxis(axisY,-Math.PI/30.0);
+            }
+                     
 
-         }
-         
+         }*/  
+    
     }
-
+    if(keyboard.pressed("1"))
+    {
+        followParrot = false;
+        followStork = false;
+        camera.position.set(N/2, N/2, N*1.5); 
+        camera.lookAt(new THREE.Vector3( N/2, 0.0, N/2));
+    }
+    if(keyboard.pressed("2"))
+    {
+        followParrot = true;
+        followStork = false;
+    }
+    if(keyboard.pressed("3"))
+    {
+        followParrot = false;
+        followStork = true;
+    } 
     requestAnimationFrame( animate );
     render();
-       /*
-    spotlight.position.x = N/2+N*Math.cos(a);
-    spotlight.position.y = N*Math.sin(a);
-    sphere.position.copy(spotlight.position);
-
-
-    var x = N/2 + 2*N*Math.cos(a);
-    var z = N/2 + 2*N*Math.sin(a);
-
-    camera.position.set(x, N/2, z);
- 
-    camera.lookAt(new THREE.Vector3( N/2, 0.0, N/2));
-*/
 }
 function render()
 {
@@ -339,13 +404,19 @@ function loadAnimatedModel(path,controlled) //где path – путь и наз
                // mesh.receiveShadow = true;
                 
                 scene.add( mesh );
+                var model={};
+                model.mesh = mesh;
+                model.controlled = controlled;
+                morphs.push( model );
+                /*
                 if (controlled==false)   
                     morphs.push( mesh );
                 else
                     stork = mesh;
+                    */
             } );
         }
-function addTraektory()
+function addTraektoryP()
 {
     var curve = new THREE.CubicBezierCurve3(
         new THREE.Vector3( 60, 50, 170 ), //P0
@@ -372,8 +443,59 @@ function addTraektory()
        var geometry = new THREE.Geometry();
        geometry.vertices = vertices;
        
+       var material = new THREE.LineBasicMaterial( { color : 0xffff00 } );
+       var curveObject = new THREE.Line( geometry, material );
+      // scene.add(curveObject);
+              return path;
+}
+function addTraektoryS()
+{
+    var curve = new THREE.CubicBezierCurve3(
+        new THREE.Vector3( 60, 120, 170 ), //P0
+        new THREE.Vector3( 75, 90, 50 ), //P1
+        new THREE.Vector3( 225, 90, 50 ), //P2
+        new THREE.Vector3( 240, 120, 175 ) //P3
+       );
+    var curve2 = new THREE.CubicBezierCurve3(
+        new THREE.Vector3( 240, 120, 180 ), //P3
+        new THREE.Vector3( 225, 90, 300 ), //P2
+        new THREE.Vector3( 75, 90, 300 ), //P1     
+        new THREE.Vector3( 60, 120, 180 ) //P0
+       );
+       var vertices = [];
+       // получение 20-ти точек на заданной кривой
+       vertices = curve.getPoints( 20 );
+       vertices = vertices.concat(curve2.getPoints( 20 ));
+
+       // создание кривой по списку точек
+       var path = new THREE.CatmullRomCurve3(vertices);
+       // является ли кривая замкнутой (зацикленной)
+       path.closed = true;
+        vertices = path.getPoints(500);
+       var geometry = new THREE.Geometry();
+       geometry.vertices = vertices;
+       
        var material = new THREE.LineBasicMaterial( { color : 0x00ff00 } );
        var curveObject = new THREE.Line( geometry, material );
       // scene.add(curveObject);
               return path;
 }
+function addSky()
+    {
+    //создание геометрии сферы
+    var geometry = new THREE.SphereGeometry( 1000, 32, 32 );
+    //загрузка текстуры
+    var loader = new THREE.TextureLoader();
+    //создание материала
+    var material = new THREE.MeshBasicMaterial({
+    map: loader.load( "pics/sky.jpg" ),
+    side: THREE.DoubleSide
+    });
+    //создание объекта
+    var sphere = new THREE.Mesh(geometry, material);
+    sphere.position.x = 162.5;
+    sphere.position.z = 162.5;
+    sphere.rotation.y = a;
+    //размещение объекта в сцене
+    scene.add( sphere );
+    } 
